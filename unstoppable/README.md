@@ -2,6 +2,8 @@
 
 **Author:** 0xmaurice
 
+**Date:** November 11, 2025
+
 **Challenge:** Damn Vulnerable DeFi v4 — *Unstoppable*
 
 **Objective:** Demonstrate how it’s possible to halt the vault and stop it from offering flash loans.
@@ -162,3 +164,7 @@ The vault enforces an unrealistically strict invariant between its raw token bal
 
 **Key Takeaway:**
 *A single external ERC-20 transfer can break a vault’s internal accounting if strict equality is enforced between raw balances and shares. ERC-4626 vaults should be designed to tolerate or reconcile such discrepancies.*
+
+---
+
+*Note:* All research, code, and technical explanations were written by **0xmaurice**. Only sentence structure and grammar were reviewed and refined with the help of **ChatGPT**.
